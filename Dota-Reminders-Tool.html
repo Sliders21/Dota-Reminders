@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Timer</title>
+    <style>
+        :root {
+            --bg-dark: #1e2124;         /* Slightly blue-tinted dark background */
+            --bg-card: #282b30;         /* Darker slate for cards */
+            --text-primary: #ffffff;     /* Keeping white text for contrast */
+            --text-secondary: #b9bbbe;   /* Slightly warmer gray */
+            --accent-orange: #ff9900;    /* Keeping your warning orange */
+            --accent-green: #43b581;     /* Softer green */
+            --accent-blue: #7289da;      /* Discord-style blue accent */
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timer-controls {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .timer-tools {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid #3a3a3a;
+            padding-top: 20px;
+        }
+
+        .toggle-container {
+            display: inline-flex;
+            background-color: #3a3a3a;
+            border-radius: 6px;
+            padding: 4px;
+        }
+
+        .toggle-container input[type="radio"] {
+            display: none;
+        }
+
+        .toggle-container label {
+            padding: 8px 24px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-container input[type="radio"]:checked + label {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .main-timer {
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        button {
+            background-color: var(--accent-blue);  /* Changed from #4a4a4a */
+            color: var(--text-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #5b6eae;  /* Darker shade of accent-blue */
+        }
+
+        button.active {
+            background-color: var(--accent-green);
+        }
+
+        input {
+            background-color: #3a3a3a;
+            color: var(--text-primary);
+            border: 1px solid #4a4a4a;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100px;
+        }
+
+        .events-grid {
+            /* Update grid to be more drag-friendly */
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;  /* Add padding for drag visual */
+        }
+
+        .event-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;  /* Give cards a consistent minimum height */
+            background-color: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: background-color 0.3s;
+            cursor: move;
+        }
+
+        .event-content {
+            text-align: center;
+        }
+
+        .event-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #3a3a3a;
+        }
+        
+        event-card.dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--accent-blue);
+        }
+
+        .event-card.warning {
+            background-color: var(--accent-orange);
+        }
+
+        .event-card.active {
+            background-color: var(--accent-green);
+        }
+
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .event-time {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .mode-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: var(--bg-card);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .time-input-container {
+            position: relative;
+        }
+
+        #timeInput {
+            width: 120px;
+            font-family: monospace;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .mute-btn {
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .mute-btn:hover {
+            background: none;
+        }
+
+        .mute-btn.muted {
+            color: var(--accent-orange);
+        }
+
+        .event-card {
+            position: relative;  /* Add this for absolute positioning of mute button */
+        }
+
+        .event-card.muted {
+            opacity: 0.5;
+        }
+        
+        .close-btn {
+            top: 5px;
+            left: 5px;
+            background: none;
+            border: none;
+            color: #ff4444;  /* Red color */
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+            background: none;
+            color: #ff6666;
+        }
+
+        .close-btn,
+        .mute-btn,
+        .warning-btn {
+            position: static;  /* Remove absolute positioning */
+            padding: 5px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .close-btn:hover,
+        .mute-btn:hover,
+        .warning-btn:hover {
+            opacity: 1;
+        }
+
+        .custom-event-creator {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 100px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .custom-event-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .timing-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timing-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .custom-input {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            border: 1px solid var(--bg-card);
+            padding: 8px 12px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .create-event-btn {
+            background-color: var(--accent-blue);
+            width: 100%;
+        }
+
+        .close-btn.delete {
+            color: #ff6666;  /* Slightly different red */
+            opacity: 0.9;
+        }
+
+        .close-btn.delete:hover {
+            color: #ff4444;
+            opacity: 1;
+        }
+
+        .warning-btn {
+            top: 5px;
+            right: 35px;  /* Position it to the left of mute button */
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .warning-btn:hover {
+            background: none;
+        }
+
+        .warning-btn.disabled {
+            color: var(--accent-orange);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timer-controls">
+            <div class="timer-tools">
+                <div class="time-input-container">
+                    <input type="text" id="timeInput" placeholder="00:00" value="-01:00">
+                </div>
+                <button id="startPauseBtn" onclick="toggleTimer()">Start</button>
+                <button onclick="resetTimer()">Reset</button>
+            </div>
+            <div class="mode-toggle">
+                <div class="toggle-container">
+                    <input type="radio" id="normalMode" name="gameMode" value="normal">
+                    <label for="normalMode">Normal</label>
+                    <input type="radio" id="turboMode" name="gameMode" value="turbo" checked>
+                    <label for="turboMode">Turbo</label>
+                </div>
+            </div>
+        </div>
+        <div class="main-timer" id="mainTimer">-01:00</div>
+        <div class="events-grid" id="eventsGrid"></div>
+        <div class="custom-event-creator">
+            <h3 class="text-center mb-4">Create Custom Event</h3>
+            <div class="custom-event-form">
+                <input type="text" id="customEventName" placeholder="Event Name" class="custom-input">
+                
+                <div class="timing-selector">
+                    <select id="timingType" class="custom-input">
+                        <option value="minute">Every X Minutes</option>
+                        <option value="clock">At XX:SS Each Minute</option>
+                    </select>
+                    
+                    <div id="minuteInputs" class="timing-inputs">
+                        <input type="number" id="intervalMinutes" placeholder="Minutes" min="1" class="custom-input">
+                    </div>
+                    
+                    <div id="clockInputs" class="timing-inputs" style="display: none;">
+                        <input type="number" id="clockSecond" placeholder="Seconds (0-59)" min="0" max="59" class="custom-input">
+                    </div>
+                </div>
+                <button onclick="addCustomEvent()" class="create-event-btn">Create Event</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isTurboMode = true;
+
+        const turboEvents = [
+            { name: 'Bounty Runes', interval: 180, initialSpawn: 0, warning: true },
+            { name: 'Lotus', interval: 90, initialSpawn: 90, warning: true },
+            { name: 'Water Runes', interval: 120, initialSpawn: 120, maxSpawns: 2, warning: true },
+            { name: 'Day Night Change', interval: 300, initialSpawn: 300, warning: true },
+            { name: 'Power Rune', interval: 120, initialSpawn: 360, warning: true },
+            { name: 'Wisdom Rune', interval: 420, initialSpawn: 420, warning: true },
+            { name: 'Camp Stack', interval: 60, initialSpawn: 114, warning: true, offset: 54 }
+        ];
+
+        const normalEvents = [
+            { name: 'Bounty Runes', interval: 180, initialSpawn: 0, warning: true },
+            { name: 'Lotus', interval: 180, initialSpawn: 180, warning: true }, // Changed to 3 minutes
+            { name: 'Water Runes', interval: 120, initialSpawn: 120, maxSpawns: 2, warning: true },
+            { name: 'Day Night Change', interval: 300, initialSpawn: 300, warning: true },
+            { name: 'Power Rune', interval: 120, initialSpawn: 360, warning: true },
+            { name: 'Wisdom Rune', interval: 420, initialSpawn: 420, warning: true },
+            { name: 'Camp Stack', interval: 60, initialSpawn: 114, warning: true, offset: 54 }
+        ];
+
+        let events = turboEvents;
+        let gameTime = -60;
+        let timerInterval;
+        let eventCards = {};
+        let isTimerRunning = false;
+        let mutedEvents = new Set(JSON.parse(localStorage.getItem('mutedEvents')) || []);
+        let closedEvents = new Set(JSON.parse(localStorage.getItem('closedEvents')) || []);
+        let eventOrder = JSON.parse(localStorage.getItem('eventOrder')) || events.map(e => e.name);
+        let customEvents = JSON.parse(localStorage.getItem('customEvents')) || [];
+        let disabledWarnings = new Set(JSON.parse(localStorage.getItem('disabledWarnings')) || []);
+
+        // Create speech synthesis for announcements
+        const speech = window.speechSynthesis;
+
+        // Add event listener for timing type selector
+        document.getElementById('timingType').addEventListener('change', function() {
+            const minuteInputs = document.getElementById('minuteInputs');
+            const clockInputs = document.getElementById('clockInputs');
+            
+            if (this.value === 'minute') {
+                minuteInputs.style.display = 'flex';
+                clockInputs.style.display = 'none';
+            } else {
+                minuteInputs.style.display = 'none';
+                clockInputs.style.display = 'flex';
+            }
+        });
+
+        function addCustomEvent() {
+            const name = document.getElementById('customEventName').value.trim();
+            const timingType = document.getElementById('timingType').value;
+            const warning = true;
+            
+            if (!name) {
+                alert('Please enter an event name');
+                return;
+            }
+
+            let newEvent;
+            if (timingType === 'minute') {
+                const interval = parseInt(document.getElementById('intervalMinutes').value) * 60;
+                if (!interval) {
+                    alert('Please enter a valid interval');
+                    return;
+                }
+                
+                newEvent = {
+                    name: name,
+                    interval: interval,
+                    initialSpawn: interval,
+                    warning: warning,
+                    isCustom: true
+                };
+            } else {
+                const second = parseInt(document.getElementById('clockSecond').value);
+                
+                if (isNaN(second) || second < 0 || second > 59) {
+                    alert('Please enter a valid second value (0-59)');
+                    return;
+                }
+
+                newEvent = {
+                    name: name,
+                    interval: 60,  // Will check every minute
+                    clockTime: { second },
+                    warning: warning,
+                    isCustom: true
+                };
+            }
+
+            customEvents.push(newEvent);
+            localStorage.setItem('customEvents', JSON.stringify(customEvents));
+            
+            // Add to current events and refresh display
+            events.push(newEvent);
+            createEventCards();
+            
+            // Clear form
+            document.getElementById('customEventName').value = '';
+            document.getElementById('intervalMinutes').value = '';
+            document.getElementById('clockSecond').value = '';
+        }
+
+        // Update the original events array to include custom events
+        function initializeEvents() {
+            // Start with base events depending on mode
+            events = isTurboMode ? [...turboEvents] : [...normalEvents];
+            
+            // Add all custom events
+            if (customEvents && customEvents.length > 0) {
+                events = [...events, ...customEvents];
+            }
+        }
+        
+        function createEventCards() {
+            const grid = document.getElementById('eventsGrid');
+            grid.innerHTML = '';
+            eventCards = {};
+            
+            const sortedEvents = [...events].sort((a, b) => {
+                return eventOrder.indexOf(a.name) - eventOrder.indexOf(b.name);
+            });
+            
+            sortedEvents.forEach(event => {
+                if (closedEvents.has(event.name)) return;
+
+                const card = document.createElement('div');
+                card.className = `event-card ${mutedEvents.has(event.name) ? 'muted' : ''}`;
+                card.id = `${event.name.replace(/\s+/g, '')}-card`;
+                
+                // Add drag attributes
+                card.draggable = true;
+                card.dataset.eventName = event.name;
+                
+                // Add drag event listeners
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('drop', handleDrop);
+
+                const muteButton = `
+                    <button class="mute-btn ${mutedEvents.has(event.name) ? 'muted' : ''}" 
+                            onclick="toggleMute('${event.name}')">
+                        ${mutedEvents.has(event.name) ? '🔇' : '🔊'}
+                    </button>
+                `;
+
+                const warningButton = `
+                    <button class="warning-btn ${disabledWarnings.has(event.name) ? 'disabled' : ''}" 
+                            onclick="toggleWarning('${event.name}')">
+                        ${disabledWarnings.has(event.name) ? '⚡' : '⏰'}
+                    </button>
+                `;
+
+                const closeButton = event.isCustom ? 
+                    `<button class="close-btn delete" onclick="deleteCustomEvent('${event.name}')">×</button>` :
+                    `<button class="close-btn" onclick="closeEvent('${event.name}')">×</button>`;
+                
+                card.innerHTML = `
+                    <div class="event-content">
+                        <div class="event-title">${event.name}</div>
+                        <div class="event-time" id="${event.name.replace(/\s+/g, '')}-time"></div>
+                    </div>
+                    <div class="event-controls">
+                        ${warningButton}
+                        ${muteButton}
+                        ${closeButton}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+                eventCards[event.name] = card;
+            });
+        }
+
+        // Add drag and drop handler functions
+        let draggedCard = null;
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            this.classList.add('dragging');
+            
+            // Prevent drag from triggering buttons
+            const buttons = this.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.addEventListener('dragstart', (e) => e.preventDefault());
+            });
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedCard = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            if (draggedCard && this !== draggedCard) {
+                const allCards = [...document.getElementsByClassName('event-card')];
+                const draggedIndex = allCards.indexOf(draggedCard);
+                const droppedIndex = allCards.indexOf(this);
+                
+                // Update order in DOM
+                if (draggedIndex < droppedIndex) {
+                    this.parentNode.insertBefore(draggedCard, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(draggedCard, this);
+                }
+                
+                // Update order in storage
+                const newOrder = [...document.getElementsByClassName('event-card')]
+                    .map(card => card.dataset.eventName);
+                eventOrder = newOrder;
+                localStorage.setItem('eventOrder', JSON.stringify(eventOrder));
+            }
+        }
+
+        function toggleGameMode() {
+            const normalModeRadio = document.getElementById('normalMode');
+            isTurboMode = !normalModeRadio.checked;
+            
+            // Reinitialize events with custom events preserved
+            initializeEvents();
+            createEventCards();
+            
+            // Update event states to refresh timers
+            updateEventStates();
+        }
+
+        function toggleMute(eventName) {
+            if (mutedEvents.has(eventName)) {
+                mutedEvents.delete(eventName);
+            } else {
+                mutedEvents.add(eventName);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('mutedEvents', JSON.stringify([...mutedEvents]));
+            
+            // Update visual state
+            const card = eventCards[eventName];
+            const muteBtn = card.querySelector('.mute-btn');
+            
+            card.classList.toggle('muted');
+            muteBtn.classList.toggle('muted');
+            muteBtn.textContent = mutedEvents.has(eventName) ? '🔇' : '🔊';
+        }
+
+        function toggleWarning(eventName) {
+            if (disabledWarnings.has(eventName)) {
+                disabledWarnings.delete(eventName);
+            } else {
+                disabledWarnings.add(eventName);
+            }
+            
+            localStorage.setItem('disabledWarnings', JSON.stringify([...disabledWarnings]));
+            
+            const card = eventCards[eventName];
+            const warningBtn = card.querySelector('.warning-btn');
+            
+            warningBtn.classList.toggle('disabled');
+            warningBtn.textContent = disabledWarnings.has(eventName) ? '⚡' : '⏰';
+        }
+
+        function closeEvent(eventName) {
+            closedEvents.add(eventName);
+            localStorage.setItem('closedEvents', JSON.stringify([...closedEvents]));
+            
+            const card = eventCards[eventName];
+            if (card) {
+                card.style.display = 'none';
+                delete eventCards[eventName];
+            }
+        }
+
+        function deleteCustomEvent(eventName) {
+            // Remove from custom events
+            customEvents = customEvents.filter(event => event.name !== eventName);
+            localStorage.setItem('customEvents', JSON.stringify(customEvents));
+            
+            // Remove from current events
+            events = events.filter(event => event.name !== eventName);
+            
+            // Remove from event order
+            eventOrder = eventOrder.filter(name => name !== eventName);
+            localStorage.setItem('eventOrder', JSON.stringify(eventOrder));
+            
+            // Remove the card
+            const card = eventCards[eventName];
+            if (card) {
+                card.remove();
+                delete eventCards[eventName];
+            }
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(Math.abs(seconds) / 60);
+            const remainingSeconds = Math.abs(seconds) % 60;
+            const sign = seconds < 0 ? '-' : '';
+            return `${sign}${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function announce(text, eventName) {
+            if (mutedEvents.has(eventName)) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            speech.speak(utterance);
+        }
+
+        function updateEventStates() {
+            // Handle Power and Water rune visibility based on game time
+            const powerCard = eventCards['Power Rune'];
+            const waterCard = eventCards['Water Runes'];
+            
+            if (gameTime < 240) { // Before 4 minutes
+                powerCard.style.display = 'none';
+                waterCard.style.display = '';
+            } else {
+                powerCard.style.display = '';
+                waterCard.style.display = 'none';
+            }
+
+            events.forEach(event => {
+                const card = eventCards[event.name];
+                if (!card || card.style.display === 'none') return;
+
+                // Get base class including muted state if present
+                const isMuted = mutedEvents.has(event.name);
+                const baseClass = `event-card${isMuted ? ' muted' : ''}`;
+
+                // Special case for Bounty Runes during pre-game
+                if (gameTime < 0 && event.name !== 'Bounty Runes') {
+                    card.className = baseClass;
+                    card.querySelector('.event-time').textContent = 'Waiting for game start';
+                    return;
+                }
+
+                // Skip if water runes after their two spawns
+                if (event.name === 'Water Runes' && gameTime > 240) {
+                    card.className = baseClass;
+                    card.querySelector('.event-time').textContent = 'Completed';
+                    return;
+                }
+
+                // Calculate next spawn time
+                let nextSpawn = event.initialSpawn;
+                while (nextSpawn <= gameTime) {
+                    nextSpawn += event.interval;
+                }
+
+                let timeUntilNext;
+
+                if (event.clockTime) {
+                    // For clock-based events (e.g., every XX:45)
+                    const currentMinute = Math.floor(gameTime / 60);
+                    const currentSecond = gameTime % 60;
+                    
+                    // Calculate when the next occurrence will be
+                    let nextMinute = currentMinute;
+                    if (currentSecond >= event.clockTime.second) {
+                        nextMinute++; // Move to next minute if we've passed the target seconds
+                    }
+                    
+                    timeUntilNext = (nextMinute * 60 + event.clockTime.second) - gameTime;
+                } else {
+                    // Original logic for interval-based events
+                    let nextSpawn = event.initialSpawn;
+                    while (nextSpawn <= gameTime) {
+                        nextSpawn += event.interval;
+                    }
+                    
+                    if (event.offset) {
+                        if (gameTime < 60) {
+                            card.className = 'event-card';
+                            card.querySelector('.event-time').textContent = 'Starts after 1:00';
+                            return;
+                        }
+                        
+                        const currentMinute = Math.floor(gameTime / 60) * 60;
+                        nextSpawn = currentMinute + event.offset;
+                        if (nextSpawn <= gameTime) {
+                            nextSpawn += event.interval;
+                        }
+                    }
+                    
+                    timeUntilNext = nextSpawn - gameTime;
+                }
+                card.querySelector('.event-time').textContent = `Next: ${formatTime(timeUntilNext)}`;
+
+                // Warning state (10 seconds before)
+                if (event.warning && !disabledWarnings.has(event.name) && timeUntilNext <= 10 && timeUntilNext > 1) {
+                    if (card.className !== 'event-card warning') {
+                        card.className = 'event-card warning';
+                        announce(`${event.name} in ${timeUntilNext}`, event.name);
+                    }
+                }
+
+                // Active state (when it happens)
+                else if (timeUntilNext <= 1 && timeUntilNext >= 0) {
+                    card.className = `${baseClass} active`;
+                    announce(`${event.name} now`, event.name);
+                    // Reset the card state after 1 second
+                    setTimeout(() => {
+                        card.className = baseClass;
+                    }, 1000);
+                }
+                // Normal state
+                else {
+                    card.className = baseClass;
+                }
+            });
+        }
+
+        function updateTimer() {
+            document.getElementById('mainTimer').textContent = formatTime(gameTime);
+            document.getElementById('timeInput').value = formatTimeForInput(gameTime);
+            updateEventStates();
+            gameTime++;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            const startTimeInput = document.getElementById('startTime');
+            gameTime = -parseInt(startTimeInput.value);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function setSpecificTime() {
+            const minute = parseInt(document.getElementById('setMinute').value);
+            if (!isNaN(minute)) {
+                gameTime = minute * 60;
+                updateTimer();
+            }
+        }
+
+        function parseTimeInput(timeStr) {
+            // Match format: "-00:00" or "00:00"
+            const match = timeStr.match(/^(-)?(\d{1,2}):(\d{2})$/);
+            if (!match) return null;
+            
+            const [_, negative, minutes, seconds] = match;
+            const totalSeconds = (parseInt(minutes) * 60 + parseInt(seconds));
+            return negative ? -totalSeconds : totalSeconds;
+        }
+
+        function formatTimeForInput(seconds) {
+            const minutes = Math.floor(Math.abs(seconds) / 60);
+            const remainingSeconds = Math.abs(seconds) % 60;
+            const sign = seconds < 0 ? '-' : '';
+            return `${sign}${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            const startPauseBtn = document.getElementById('startPauseBtn');
+            
+            if (!isTimerRunning) {
+                // Start timer
+                const timeInput = document.getElementById('timeInput');
+                const parsedTime = parseTimeInput(timeInput.value);
+                
+                if (parsedTime !== null) {
+                    gameTime = parsedTime;
+                    timerInterval = setInterval(updateTimer, 1000);
+                    startPauseBtn.textContent = 'Pause';
+                    isTimerRunning = true;
+                } else {
+                    alert('Please enter time in format: 00:00 or -00:00');
+                }
+            } else {
+                // Pause timer
+                clearInterval(timerInterval);
+                startPauseBtn.textContent = 'Start';
+                isTimerRunning = false;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            gameTime = -60;
+            document.getElementById('timeInput').value = '-01:00';
+            document.getElementById('startPauseBtn').textContent = 'Start';
+            isTimerRunning = false;
+            
+            // Clear only non-custom closed events
+            closedEvents.clear();
+            localStorage.setItem('closedEvents', JSON.stringify([]));
+            
+            // Reset event order while preserving custom events
+            initializeEvents();
+            createEventCards();
+            updateTimer();
+        }
+
+        // Initialize
+        document.getElementById('normalMode').addEventListener('change', toggleGameMode);
+        document.getElementById('turboMode').addEventListener('change', toggleGameMode);
+        initializeEvents();
+        createEventCards();
+        updateTimer();
+    </script>
+</body>
+</html>
