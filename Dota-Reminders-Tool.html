@@ -28,6 +28,34 @@
             margin: 0 auto;
         }
 
+        .site-banner {
+            background-color: var(--bg-card);
+            padding: 15px 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    
+        .site-title {
+            font-size: 2em;
+            margin: 0;
+        }
+    
+        .site-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+    
+        .site-title a:hover {
+            color: var(--accent-blue);
+        }
+    
+        .site-tagline {
+            color: var(--text-secondary);
+            margin: 5px 0 0 0;
+            font-size: 1.1em;
+        }
+
         .timer-controls {
             background-color: var(--bg-card);
             padding: 20px;
@@ -323,6 +351,12 @@
     </style>
 </head>
 <body>
+    <div class="site-banner">
+        <h1 class="site-title">
+            <a href="https://dotareminders.wordpress.com">Dota Reminders</a>
+        </h1>
+        <p class="site-tagline">Perfect timing, every game</p>
+    </div>
     <div class="container">
         <div class="timer-controls">
             <div class="timer-tools">
